@@ -3,7 +3,7 @@ use error::ContractError;
 use msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 pub mod contract;
-pub mod error;
+mod error;
 pub mod msg;
 pub mod state;
 

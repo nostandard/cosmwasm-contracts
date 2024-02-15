@@ -89,7 +89,7 @@ mod exec {
                 amount,
             })
             .add_attribute("action", "withdraw")
-            .add_attribute("recipient", state.recipient);
+            .add_attribute("recipient", state.recipient.as_str());
 
         Ok(resp)
     }
@@ -113,7 +113,7 @@ mod exec {
                 amount: deposit,
             })
             .add_attribute("action", "refund")
-            .add_attribute("recipient", state.sender);
+            .add_attribute("recipient", state.sender.as_str());
 
         Ok(resp)
     }
