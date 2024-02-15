@@ -1,6 +1,11 @@
 [package]
 name = "escrow"
 version = "0.1.0"
+description = "Cosmwasm escrow smart contract"
+authors = ["Kobby Pentangeli <kobbypentangeli@gmail.com>"]
+readme = "README.md"
+license = "MIT or Apache 2.0"
+repository = "https://github.com/nostandard/cosmwasm-contracts"
 edition = "2021"
 
 [lib]

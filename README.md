@@ -1,6 +1,8 @@
 # CosmWasm Contracts
 
-A library of battle-tested and production-ready CosmWasm smart contracts.
+A library of [CosmWasm](https://github.com/CosmWasm/cosmwasm) smart contracts.
+
+**WARNING** None of these contracts have been audited and no liability is assumed for the use of this code. They are provided as-is to be used as bases for your projects.
 
 ## Contributing
 

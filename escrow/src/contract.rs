@@ -48,8 +48,10 @@ pub fn execute(
 
 /// Top-level query handler responsible for dispatching query messages.
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    use QueryMsg::*;
+
     match msg {
-        QueryMsg::Agent {} => to_json_binary(&query::query_agent(deps)?),
+        Agent {} => to_json_binary(&query::query_agent(deps)?),
     }
 }
 
