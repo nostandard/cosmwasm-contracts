@@ -1,14 +1,30 @@
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
+use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::state::{State, STATE};
 
 /// Top-level handler responsible for dispatching the contract instantiation message.
 pub fn instantiate(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: InstantiateMsg,
-) -> StdResult<Response> {
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
+    let state = State {
+        sender: info.sender,
+        recipient: deps.api.addr_validate(&msg.recipient)?,
+        agent: deps.api.addr_validate(&msg.agent)?,
+        expiration: msg.expiration,
+    };
+
+    if let Some(expiration) = msg.expiration {
+        if expiration.is_expired(&env.block) {
+            return Err(ContractError::Expired { expiration });
+        }
+    }
+    STATE.save(deps.storage, &state)?;
+
     Ok(Response::new())
 }
 

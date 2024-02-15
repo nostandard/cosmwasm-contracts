@@ -335,7 +335,9 @@ version = "0.1.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-storage-plus",
  "cw-utils",
+ "thiserror",
 ]
 
 [[package]]

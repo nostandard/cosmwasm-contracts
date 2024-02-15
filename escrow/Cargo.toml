@@ -9,4 +9,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cosmwasm-schema = "1.5"
 cosmwasm-std = "1.5"
+cw-storage-plus = "1.2"
 cw-utils = "1.0"
+thiserror = "1.0"
