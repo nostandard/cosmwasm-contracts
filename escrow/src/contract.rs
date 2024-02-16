@@ -1,7 +1,7 @@
 use crate::{
     error::ContractError,
     msg::{AgentResp, ExecuteMsg, InstantiateMsg, QueryMsg},
-    state::{Escrow, ESCROW},
+    state::{Escrow, ESCROW, ESCROW_TOKEN},
 };
 use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
@@ -27,6 +27,7 @@ pub fn instantiate(
         }
     }
     ESCROW.save(deps.storage, &escrow)?;
+    ESCROW_TOKEN.save(deps.storage, &msg.escrow_token)?;
 
     Ok(Response::new())
 }
@@ -41,6 +42,7 @@ pub fn execute(
     use ExecuteMsg::*;
 
     match msg {
+        Deposit { amount } => exec::deposit(deps, env, info, amount),
         Withdraw { amount } => exec::withdraw(deps, env, info, amount),
         Refund {} => exec::refund(deps, env, info),
     }
@@ -58,6 +60,35 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 mod exec {
     use super::*;
 
+    pub fn deposit(
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        amount: Vec<Coin>,
+    ) -> Result<Response, ContractError> {
+        let escrow = ESCROW.load(deps.storage)?;
+        let token = ESCROW_TOKEN.load(deps.storage)?;
+
+        if let Some(expiration) = escrow.expiration {
+            if expiration.is_expired(&env.block) {
+                return Err(ContractError::Expired { expiration });
+            }
+        }
+
+        let amount_int = cw_utils::must_pay(&info, &token)?.u128();
+
+        let resp = Response::new()
+            .add_message(BankMsg::Send {
+                to_address: env.contract.address.to_string(),
+                amount,
+            })
+            .add_attribute("action", "deposit")
+            .add_attribute("amount", amount_int.to_string())
+            .add_attribute("token", &token);
+
+        Ok(resp)
+    }
+
     pub fn withdraw(
         deps: DepsMut,
         env: Env,
@@ -65,6 +96,8 @@ mod exec {
         amount: Option<Vec<Coin>>,
     ) -> Result<Response, ContractError> {
         let escrow = ESCROW.load(deps.storage)?;
+        let token = ESCROW_TOKEN.load(deps.storage)?;
+
         // Only agent is authorized to make a withdrawal
         if info.sender != escrow.agent {
             return Err(ContractError::Unauthorized {
@@ -90,7 +123,8 @@ mod exec {
                 amount,
             })
             .add_attribute("action", "withdraw")
-            .add_attribute("recipient", escrow.recipient.as_str());
+            .add_attribute("recipient", escrow.recipient.as_str())
+            .add_attribute("token", token);
 
         Ok(resp)
     }

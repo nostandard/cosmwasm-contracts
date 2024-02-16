@@ -6,11 +6,13 @@ use cw_utils::Expiration;
 pub struct InstantiateMsg {
     pub recipient: String,
     pub agent: String,
+    pub escrow_token: String,
     pub expiration: Option<Expiration>,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    Deposit { amount: Vec<Coin> },
     Withdraw { amount: Option<Vec<Coin>> },
     Refund {},
 }

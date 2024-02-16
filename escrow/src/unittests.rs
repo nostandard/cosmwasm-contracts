@@ -17,6 +17,7 @@ fn init_msg_ctor(expiration: Option<Expiration>) -> InstantiateMsg {
     InstantiateMsg {
         recipient: "recipient".to_owned(),
         agent: "agent".to_owned(),
+        escrow_token: TEST_TOKEN.to_string(),
         expiration,
     }
 }
@@ -25,7 +26,7 @@ fn init_msg_ctor(expiration: Option<Expiration>) -> InstantiateMsg {
 fn instantiate_and_query_agent() {
     let mut deps = mock_dependencies();
     let init_msg = init_msg_ctor(Some(EXPIRATION));
-    let msg_info = mock_info("creator", &coins(500, TEST_TOKEN));
+    let msg_info = mock_info("creator", &[]);
 
     let mut env = mock_env();
     env.block.time = Timestamp::from_seconds(0);
@@ -48,7 +49,7 @@ fn instantiate_and_query_agent() {
 fn instantiate_on_expiration() {
     let mut deps = mock_dependencies();
     let init_msg = init_msg_ctor(Some(EXPIRATION));
-    let msg_info = mock_info("creator", &coins(500, TEST_TOKEN));
+    let msg_info = mock_info("creator", &[]);
 
     let mut env = mock_env();
     env.block.time = Timestamp::from_seconds(0);

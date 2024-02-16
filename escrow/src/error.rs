@@ -18,4 +18,7 @@ pub enum ContractError {
 
     #[error("Escrow has not yet expired")]
     NotExpired {},
+
+    #[error("Specified amount is in excess of balance")]
+    InsufficientFunds,
 }

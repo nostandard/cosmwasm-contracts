@@ -12,3 +12,4 @@ pub struct Escrow {
 }
 
 pub const ESCROW: Item<Escrow> = Item::new("escrow");
+pub const ESCROW_TOKEN: Item<String> = Item::new("escrow_token");
