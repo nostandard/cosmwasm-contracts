@@ -8,9 +8,9 @@ use msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 mod contract;
 pub mod error;
 pub mod msg;
-#[cfg(any(test, feature = "tests"))]
-pub mod multitest;
 mod state;
+#[cfg(any(test, feature = "tests"))]
+mod unittests;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
