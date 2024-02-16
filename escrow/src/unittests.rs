@@ -61,7 +61,7 @@ fn instantiate_on_expiration() {
 fn authorized_withdraw_amount_specified() {
     let mut deps = mock_dependencies();
     let init_msg = init_msg_ctor(Some(EXPIRATION));
-    let msg_info = mock_info("creator", &coins(500, TEST_TOKEN));
+    let msg_info = mock_info("creator", &[]);
 
     let mut env = mock_env();
     env.block.time = Timestamp::from_seconds(0);

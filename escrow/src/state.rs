@@ -4,11 +4,11 @@ use cw_storage_plus::Item;
 use cw_utils::Expiration;
 
 #[cw_serde]
-pub struct State {
+pub struct Escrow {
     pub creator: Addr,
     pub recipient: Addr,
     pub agent: Addr,
     pub expiration: Option<Expiration>,
 }
 
-pub const STATE: Item<State> = Item::new("state");
+pub const ESCROW: Item<Escrow> = Item::new("escrow");

@@ -1,7 +1,7 @@
 use crate::{
     error::ContractError,
     msg::{AgentResp, ExecuteMsg, InstantiateMsg, QueryMsg},
-    state::{State, STATE},
+    state::{Escrow, ESCROW},
 };
 use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
@@ -14,7 +14,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let state = State {
+    let escrow = Escrow {
         creator: info.sender,
         recipient: deps.api.addr_validate(&msg.recipient)?,
         agent: deps.api.addr_validate(&msg.agent)?,
@@ -26,7 +26,7 @@ pub fn instantiate(
             return Err(ContractError::Expired { expiration });
         }
     }
-    STATE.save(deps.storage, &state)?;
+    ESCROW.save(deps.storage, &escrow)?;
 
     Ok(Response::new())
 }
@@ -64,15 +64,15 @@ mod exec {
         info: MessageInfo,
         amount: Option<Vec<Coin>>,
     ) -> Result<Response, ContractError> {
-        let state = STATE.load(deps.storage)?;
+        let escrow = ESCROW.load(deps.storage)?;
         // Only agent is authorized to make a withdrawal
-        if info.sender != state.agent {
+        if info.sender != escrow.agent {
             return Err(ContractError::Unauthorized {
                 sender: info.sender,
             });
         }
 
-        if let Some(expiration) = state.expiration {
+        if let Some(expiration) = escrow.expiration {
             if expiration.is_expired(&env.block) {
                 return Err(ContractError::Expired { expiration });
             }
@@ -86,25 +86,25 @@ mod exec {
 
         let resp = Response::new()
             .add_message(BankMsg::Send {
-                to_address: state.recipient.to_string(),
+                to_address: escrow.recipient.to_string(),
                 amount,
             })
             .add_attribute("action", "withdraw")
-            .add_attribute("recipient", state.recipient.as_str());
+            .add_attribute("recipient", escrow.recipient.as_str());
 
         Ok(resp)
     }
 
     pub fn refund(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
-        let state = STATE.load(deps.storage)?;
+        let escrow = ESCROW.load(deps.storage)?;
         // Only agent is authorized to issue a refund
-        if info.sender != state.agent {
+        if info.sender != escrow.agent {
             return Err(ContractError::Unauthorized {
                 sender: info.sender,
             });
         }
 
-        if let Some(expiration) = state.expiration {
+        if let Some(expiration) = escrow.expiration {
             if !expiration.is_expired(&env.block) {
                 return Err(ContractError::NotExpired {});
             }
@@ -116,11 +116,11 @@ mod exec {
 
         let resp = Response::new()
             .add_message(BankMsg::Send {
-                to_address: state.creator.to_string(),
+                to_address: escrow.creator.to_string(),
                 amount: deposit,
             })
             .add_attribute("action", "refund")
-            .add_attribute("recipient", state.creator.as_str());
+            .add_attribute("recipient", escrow.creator.as_str());
 
         Ok(resp)
     }
@@ -130,8 +130,8 @@ mod query {
     use super::*;
 
     pub fn query_agent(deps: Deps) -> StdResult<AgentResp> {
-        let state = STATE.load(deps.storage)?;
-        let agent_addr = state.agent;
+        let escrow = ESCROW.load(deps.storage)?;
+        let agent_addr = escrow.agent;
         Ok(AgentResp { agent: agent_addr })
     }
 }
