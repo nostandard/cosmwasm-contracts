@@ -1,4 +1,4 @@
-use cosmwasm_std::{coins, from_json, Timestamp};
+use cosmwasm_std::{coins, from_json, BankMsg, CosmosMsg, Timestamp};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     Addr,
@@ -7,7 +7,7 @@ use cw_utils::Expiration;
 
 use crate::{
     contract,
-    msg::{AgentResp, InstantiateMsg, QueryMsg},
+    msg::{AgentResp, ExecuteMsg, InstantiateMsg, QueryMsg},
 };
 
 const TEST_TOKEN: &str = "ATOM";
@@ -55,4 +55,35 @@ fn instantiate_on_expiration() {
     env.block.height = 1005; // this block height > `EXPIRATION`... -> failure!
 
     assert!(contract::instantiate(deps.as_mut(), env, msg_info, init_msg).is_err());
+}
+
+#[test]
+fn authorized_withdraw_amount_specified() {
+    let mut deps = mock_dependencies();
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &coins(500, TEST_TOKEN));
+
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    let exec_msg = ExecuteMsg::Withdraw {
+        amount: Some(coins(150, TEST_TOKEN)),
+    };
+    let msg_info = mock_info("agent", &[]);
+
+    let resp = contract::execute(deps.as_mut(), env, msg_info, exec_msg);
+    assert!(resp.is_ok());
+    let resp = resp.unwrap();
+    assert_eq!(1, resp.messages.len());
+    assert_eq!(
+        resp.messages.get(0).unwrap().msg,
+        CosmosMsg::Bank(BankMsg::Send {
+            to_address: "recipient".to_owned(),
+            amount: coins(150, TEST_TOKEN),
+        })
+    );
 }

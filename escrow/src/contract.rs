@@ -65,6 +65,7 @@ mod exec {
         amount: Option<Vec<Coin>>,
     ) -> Result<Response, ContractError> {
         let state = STATE.load(deps.storage)?;
+        // Only agent is authorized to make a withdrawal
         if info.sender != state.agent {
             return Err(ContractError::Unauthorized {
                 sender: info.sender,
@@ -94,8 +95,14 @@ mod exec {
         Ok(resp)
     }
 
-    pub fn refund(deps: DepsMut, env: Env, _info: MessageInfo) -> Result<Response, ContractError> {
+    pub fn refund(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
         let state = STATE.load(deps.storage)?;
+        // Only agent is authorized to issue a refund
+        if info.sender != state.agent {
+            return Err(ContractError::Unauthorized {
+                sender: info.sender,
+            });
+        }
 
         if let Some(expiration) = state.expiration {
             if !expiration.is_expired(&env.block) {
