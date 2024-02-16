@@ -1,11 +1,14 @@
-use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
+
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use error::ContractError;
 use msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
-pub mod contract;
+mod contract;
 mod error;
 pub mod msg;
-pub mod state;
+mod state;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
