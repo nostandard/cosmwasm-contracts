@@ -66,10 +66,13 @@ fn authorized_withdraw_with_amount_specified() {
     env.block.height = 900;
 
     // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
     let init_msg = init_msg_ctor(Some(EXPIRATION));
     let msg_info = mock_info("creator", &coins(500, TEST_TOKEN));
     let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
     assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
 
     // withdraw
     let exec_msg = ExecuteMsg::Withdraw {
@@ -88,4 +91,150 @@ fn authorized_withdraw_with_amount_specified() {
             amount: coins(150, TEST_TOKEN),
         })
     );
+}
+
+#[test]
+fn authorized_withdraw_full_escrow_balance() {
+    let mut deps = mock_dependencies();
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &init_amt);
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
+
+    // withdraw
+    let exec_msg = ExecuteMsg::Withdraw { amount: None };
+    let msg_info = mock_info("arbiter", &[]);
+    let resp = contract::execute(deps.as_mut(), env, msg_info, exec_msg);
+    assert!(resp.is_ok());
+
+    let resp = resp.unwrap();
+    assert_eq!(1, resp.messages.len());
+    assert_eq!(
+        resp.messages.get(0).unwrap().msg,
+        CosmosMsg::Bank(BankMsg::Send {
+            to_address: "recipient".to_owned(),
+            amount: coins(1500, TEST_TOKEN),
+        })
+    );
+}
+
+#[test]
+fn authorized_withdraw_on_expiry() {
+    let mut deps = mock_dependencies();
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &init_amt);
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
+
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 9070;
+
+    // try withdraw exec call
+    let exec_msg = ExecuteMsg::Withdraw { amount: None };
+    let msg_info = mock_info("arbiter", &[]);
+    assert!(contract::execute(deps.as_mut(), env, msg_info, exec_msg).is_err());
+}
+
+#[test]
+fn unauthorized_withdraw() {
+    let mut deps = mock_dependencies();
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &init_amt);
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
+
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 9070;
+
+    // try withdraw exec call
+    let exec_msg = ExecuteMsg::Withdraw { amount: None };
+    let msg_info = mock_info("recipient", &[]);
+    assert!(contract::execute(deps.as_mut(), env, msg_info, exec_msg).is_err());
+}
+
+#[test]
+fn authorized_refund_on_expiry() {
+    let mut deps = mock_dependencies();
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &init_amt);
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
+
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 1000;
+
+    // refund
+    let exec_msg = ExecuteMsg::Refund {};
+    let msg_info = mock_info("arbiter", &[]);
+    let resp = contract::execute(deps.as_mut(), env, msg_info, exec_msg);
+    assert!(resp.is_ok());
+
+    let resp = resp.unwrap();
+    assert_eq!(1, resp.messages.len());
+    assert_eq!(
+        resp.messages.get(0).unwrap().msg,
+        CosmosMsg::Bank(BankMsg::Send {
+            to_address: "creator".to_owned(),
+            amount: coins(1500, TEST_TOKEN),
+        })
+    );
+}
+
+#[test]
+fn unauthorized_refund() {
+    let mut deps = mock_dependencies();
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 900;
+
+    // instantiate
+    let init_amt = coins(1500, TEST_TOKEN);
+    let init_msg = init_msg_ctor(Some(EXPIRATION));
+    let msg_info = mock_info("creator", &init_amt);
+    let resp = contract::instantiate(deps.as_mut(), env.clone(), msg_info, init_msg).unwrap();
+    assert_eq!(0, resp.messages.len());
+
+    deps.querier.update_balance(&env.contract.address, init_amt);
+
+    let mut env = mock_env();
+    env.block.time = Timestamp::from_seconds(0);
+    env.block.height = 1000;
+
+    // refund
+    let exec_msg = ExecuteMsg::Refund {};
+    let msg_info = mock_info("creator", &[]);
+    assert!(contract::execute(deps.as_mut(), env, msg_info, exec_msg).is_err());
 }
