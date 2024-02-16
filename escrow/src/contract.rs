@@ -15,7 +15,7 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let state = State {
-        sender: info.sender,
+        creator: info.sender,
         recipient: deps.api.addr_validate(&msg.recipient)?,
         agent: deps.api.addr_validate(&msg.agent)?,
         expiration: msg.expiration,
@@ -109,11 +109,11 @@ mod exec {
 
         let resp = Response::new()
             .add_message(BankMsg::Send {
-                to_address: state.sender.to_string(),
+                to_address: state.creator.to_string(),
                 amount: deposit,
             })
             .add_attribute("action", "refund")
-            .add_attribute("recipient", state.sender.as_str());
+            .add_attribute("recipient", state.creator.as_str());
 
         Ok(resp)
     }

@@ -5,7 +5,7 @@ use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct State {
-    pub sender: Addr,
+    pub creator: Addr,
     pub recipient: Addr,
     pub agent: Addr,
     pub expiration: Option<Expiration>,

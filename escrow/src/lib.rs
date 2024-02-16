@@ -6,8 +6,10 @@ use error::ContractError;
 use msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 mod contract;
-mod error;
+pub mod error;
 pub mod msg;
+#[cfg(any(test, feature = "tests"))]
+pub mod multitest;
 mod state;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
