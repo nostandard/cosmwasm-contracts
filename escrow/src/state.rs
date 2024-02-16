@@ -1,14 +1,15 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, Coin};
 use cw_storage_plus::Item;
 use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct Escrow {
     pub creator: Addr,
+    pub arbiter: Addr,
     pub recipient: Addr,
-    pub agent: Addr,
     pub expiration: Option<Expiration>,
+    pub balance: Vec<Coin>,
 }
 
 pub const ESCROW: Item<Escrow> = Item::new("escrow");

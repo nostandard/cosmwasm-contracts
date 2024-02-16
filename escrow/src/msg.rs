@@ -5,14 +5,13 @@ use cw_utils::Expiration;
 #[cw_serde]
 pub struct InstantiateMsg {
     pub recipient: String,
-    pub agent: String,
+    pub arbiter: String,
     pub escrow_token: String,
     pub expiration: Option<Expiration>,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Deposit { amount: Vec<Coin> },
     Withdraw { amount: Option<Vec<Coin>> },
     Refund {},
 }
@@ -20,11 +19,11 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(AgentResp)]
-    Agent {},
+    #[returns(ArbiterResp)]
+    Arbiter {},
 }
 
 #[cw_serde]
-pub struct AgentResp {
-    pub agent: Addr,
+pub struct ArbiterResp {
+    pub arbiter: Addr,
 }

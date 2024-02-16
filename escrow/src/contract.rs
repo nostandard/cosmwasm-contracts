@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    msg::{AgentResp, ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{ArbiterResp, ExecuteMsg, InstantiateMsg, QueryMsg},
     state::{Escrow, ESCROW, ESCROW_TOKEN},
 };
 use cosmwasm_std::{
@@ -16,10 +16,15 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let escrow = Escrow {
         creator: info.sender,
+        arbiter: deps.api.addr_validate(&msg.arbiter)?,
         recipient: deps.api.addr_validate(&msg.recipient)?,
-        agent: deps.api.addr_validate(&msg.agent)?,
         expiration: msg.expiration,
+        balance: deps.querier.query_all_balances(env.contract.address)?,
     };
+
+    if info.funds.is_empty() {
+        return Err(ContractError::NoFunds);
+    }
 
     if let Some(expiration) = msg.expiration {
         if expiration.is_expired(&env.block) {
@@ -42,7 +47,6 @@ pub fn execute(
     use ExecuteMsg::*;
 
     match msg {
-        Deposit { amount } => exec::deposit(deps, env, info, amount),
         Withdraw { amount } => exec::withdraw(deps, env, info, amount),
         Refund {} => exec::refund(deps, env, info),
     }
@@ -53,41 +57,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
 
     match msg {
-        Agent {} => to_json_binary(&query::query_agent(deps)?),
+        Arbiter {} => to_json_binary(&query::query_arbiter(deps)?),
     }
 }
 
 mod exec {
     use super::*;
-
-    pub fn deposit(
-        deps: DepsMut,
-        env: Env,
-        info: MessageInfo,
-        amount: Vec<Coin>,
-    ) -> Result<Response, ContractError> {
-        let escrow = ESCROW.load(deps.storage)?;
-        let token = ESCROW_TOKEN.load(deps.storage)?;
-
-        if let Some(expiration) = escrow.expiration {
-            if expiration.is_expired(&env.block) {
-                return Err(ContractError::Expired { expiration });
-            }
-        }
-
-        let amount_int = cw_utils::must_pay(&info, &token)?.u128();
-
-        let resp = Response::new()
-            .add_message(BankMsg::Send {
-                to_address: env.contract.address.to_string(),
-                amount,
-            })
-            .add_attribute("action", "deposit")
-            .add_attribute("amount", amount_int.to_string())
-            .add_attribute("token", &token);
-
-        Ok(resp)
-    }
 
     pub fn withdraw(
         deps: DepsMut,
@@ -99,7 +74,7 @@ mod exec {
         let token = ESCROW_TOKEN.load(deps.storage)?;
 
         // Only agent is authorized to make a withdrawal
-        if info.sender != escrow.agent {
+        if info.sender != escrow.arbiter {
             return Err(ContractError::Unauthorized {
                 sender: info.sender,
             });
@@ -124,6 +99,7 @@ mod exec {
             })
             .add_attribute("action", "withdraw")
             .add_attribute("recipient", escrow.recipient.as_str())
+            .add_attribute("executed_by", info.sender.to_string())
             .add_attribute("token", token);
 
         Ok(resp)
@@ -131,8 +107,10 @@ mod exec {
 
     pub fn refund(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
         let escrow = ESCROW.load(deps.storage)?;
+        let token = ESCROW_TOKEN.load(deps.storage)?;
+
         // Only agent is authorized to issue a refund
-        if info.sender != escrow.agent {
+        if info.sender != escrow.arbiter {
             return Err(ContractError::Unauthorized {
                 sender: info.sender,
             });
@@ -154,7 +132,9 @@ mod exec {
                 amount: deposit,
             })
             .add_attribute("action", "refund")
-            .add_attribute("recipient", escrow.creator.as_str());
+            .add_attribute("recipient", escrow.creator.as_str())
+            .add_attribute("executed_by", info.sender.to_string())
+            .add_attribute("token", token);
 
         Ok(resp)
     }
@@ -163,9 +143,11 @@ mod exec {
 mod query {
     use super::*;
 
-    pub fn query_agent(deps: Deps) -> StdResult<AgentResp> {
+    pub fn query_arbiter(deps: Deps) -> StdResult<ArbiterResp> {
         let escrow = ESCROW.load(deps.storage)?;
-        let agent_addr = escrow.agent;
-        Ok(AgentResp { agent: agent_addr })
+        let arbiter_addr = escrow.arbiter;
+        Ok(ArbiterResp {
+            arbiter: arbiter_addr,
+        })
     }
 }
